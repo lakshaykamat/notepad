@@ -622,7 +622,7 @@
                         autofocus
                     ></textarea>
                     <div class="status">
-                        <span id="save-state" role="status">Saved</span>
+                        <span id="save-state" role="status">Loading…</span>
                         <span id="count" aria-hidden="true"></span>
                     </div>
                 </div>
@@ -719,49 +719,116 @@
             const list = document.getElementById("note-list");
             const mobile = matchMedia("(max-width: 720px)");
             const LS = {
-                notes: "note.notes",
                 active: "note.active",
                 theme: "note.theme",
                 size: "note.size",
             };
             localStorage.removeItem("note.sidebar");
 
-            /* ---------- Notes store ---------- */
+            /* ---------- IndexedDB storage ----------
+               "meta" holds {id, title, updated} for the sidebar;
+               "bodies" holds each note's text, fetched only when opened. */
 
-            let notes = null;
-            try {
-                notes = JSON.parse(localStorage.getItem(LS.notes));
-            } catch (e) {}
-            if (!Array.isArray(notes) || notes.length === 0) {
-                /* Migrate the old single-note storage if present */
-                const legacy = localStorage.getItem("note.text") || "";
-                notes = [makeNote(legacy)];
-                localStorage.removeItem("note.text");
-                persistNotes();
+            let db;
+            let notes = [];
+            let activeId = null;
+
+            function openDatabase() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open("notepad", 1);
+                    request.onupgradeneeded = () => {
+                        request.result.createObjectStore("meta", {
+                            keyPath: "id",
+                        });
+                        request.result.createObjectStore("bodies");
+                    };
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
             }
 
-            let activeId = localStorage.getItem(LS.active);
-            if (!notes.some((n) => n.id === activeId)) activeId = notes[0].id;
-
-            function makeNote(text) {
-                return {
-                    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-                    title: "",
-                    text: text || "",
-                    updated: Date.now(),
-                };
+            function asPromise(request) {
+                return new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
             }
-            /* Older notes: stamp a time and promote the first line to title */
-            notes.forEach((n) => {
-                n.updated = n.updated || Date.now();
-                if (n.title === undefined) {
-                    const lines = n.text.split("\n");
-                    n.title = (lines.shift() || "").trim();
-                    n.text = lines.join("\n").replace(/^\n+/, "");
+
+            function whenDone(tx) {
+                return new Promise((resolve, reject) => {
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+            }
+
+            function readAllMeta() {
+                return asPromise(
+                    db.transaction("meta").objectStore("meta").getAll(),
+                );
+            }
+
+            function readBody(id) {
+                return asPromise(
+                    db.transaction("bodies").objectStore("bodies").get(id),
+                );
+            }
+
+            function writeNote(meta, text) {
+                const tx = db.transaction(["meta", "bodies"], "readwrite");
+                tx.objectStore("meta").put(meta);
+                tx.objectStore("bodies").put(text, meta.id);
+                return whenDone(tx);
+            }
+
+            function removeNote(id) {
+                const tx = db.transaction(["meta", "bodies"], "readwrite");
+                tx.objectStore("meta").delete(id);
+                tx.objectStore("bodies").delete(id);
+                return whenDone(tx);
+            }
+
+            function newId() {
+                return (
+                    Date.now().toString(36) +
+                    Math.random().toString(36).slice(2, 6)
+                );
+            }
+
+            function makeNote() {
+                return { id: newId(), title: "", updated: Date.now() };
+            }
+
+            /* One-time move of notes saved by the old localStorage versions */
+            async function migrateFromLocalStorage() {
+                let oldNotes = null;
+                try {
+                    oldNotes = JSON.parse(localStorage.getItem("note.notes"));
+                } catch (e) {}
+                const oldSingle = localStorage.getItem("note.text");
+                if (!Array.isArray(oldNotes) && oldSingle !== null)
+                    oldNotes = [{ text: oldSingle }];
+                if (!Array.isArray(oldNotes)) return;
+
+                for (const old of oldNotes) {
+                    let title = old.title;
+                    let text = old.text || "";
+                    if (title === undefined) {
+                        const lines = text.split("\n");
+                        title = (lines.shift() || "").trim();
+                        text = lines.join("\n").replace(/^\n+/, "");
+                    }
+                    await writeNote(
+                        {
+                            id: old.id || newId(),
+                            title: title.slice(0, 40),
+                            updated: old.updated || Date.now(),
+                        },
+                        text,
+                    );
                 }
-                n.title = n.title.slice(0, 40);
-            });
-            notes.sort((a, b) => b.updated - a.updated);
+                localStorage.removeItem("note.notes");
+                localStorage.removeItem("note.text");
+            }
 
             function timeAgo(ts) {
                 const mins = Math.floor((Date.now() - ts) / 60000);
@@ -777,9 +844,6 @@
                     day: "numeric",
                 });
             }
-            function persistNotes() {
-                localStorage.setItem(LS.notes, JSON.stringify(notes));
-            }
             function activeNote() {
                 return notes.find((n) => n.id === activeId);
             }
@@ -789,12 +853,16 @@
 
             const docTitle = document.getElementById("doc-title");
 
-            function openNote(id) {
+            async function openNote(id) {
+                flushPendingSave();
                 activeId = id;
                 localStorage.setItem(LS.active, id);
-                titleInput.value = activeNote().title;
-                pad.value = activeNote().text;
-                docTitle.textContent = titleOf(activeNote());
+                const text = (await readBody(id)) || "";
+                if (activeId !== id) return;
+                const note = activeNote();
+                titleInput.value = note.title;
+                pad.value = text;
+                docTitle.textContent = titleOf(note);
                 renderList();
                 updateStatus();
                 if (mobile.matches) setSidebar("off", true);
@@ -837,17 +905,23 @@
                 }
             }
 
-            function deleteNote(id) {
+            async function deleteNote(id) {
                 const note = notes.find((n) => n.id === id);
-                const doDelete = () => {
+                const doDelete = async () => {
                     notes = notes.filter((n) => n.id !== id);
-                    if (notes.length === 0) notes = [makeNote("")];
-                    persistNotes();
+                    await removeNote(id);
+                    if (notes.length === 0) {
+                        const fresh = makeNote();
+                        notes = [fresh];
+                        await writeNote(fresh, "");
+                    }
                     if (id === activeId) openNote(notes[0].id);
                     else renderList();
                 };
                 /* Empty notes are removed without asking */
-                if (!note.title.trim() && !note.text.trim()) doDelete();
+                const text =
+                    id === activeId ? pad.value : (await readBody(id)) || "";
+                if (!note.title.trim() && !text.trim()) doDelete();
                 else askDelete(note, doDelete);
             }
 
@@ -890,12 +964,14 @@
                 if (e.target === confirmOverlay) closeConfirm();
             });
 
-            document.getElementById("new-note").addEventListener("click", () => {
-                const note = makeNote("");
-                notes.unshift(note);
-                persistNotes();
-                openNote(note.id);
-            });
+            document
+                .getElementById("new-note")
+                .addEventListener("click", async () => {
+                    const note = makeNote();
+                    notes.unshift(note);
+                    await writeNote(note, "");
+                    openNote(note.id);
+                });
 
             /* ---------- Editing & autosave ---------- */
 
@@ -914,11 +990,27 @@
                     (text.length === 1 ? " character" : " characters");
             }
 
-            titleInput.value = activeNote().title;
-            pad.value = activeNote().text;
-            docTitle.textContent = titleOf(activeNote());
-            renderList();
-            updateStatus();
+            async function init() {
+                db = await openDatabase();
+                await migrateFromLocalStorage();
+                notes = await readAllMeta();
+                if (notes.length === 0) {
+                    const first = makeNote();
+                    notes = [first];
+                    await writeNote(first, "");
+                }
+                notes.sort((a, b) => b.updated - a.updated);
+                activeId = localStorage.getItem(LS.active);
+                if (!notes.some((n) => n.id === activeId))
+                    activeId = notes[0].id;
+                const note = activeNote();
+                titleInput.value = note.title;
+                pad.value = (await readBody(activeId)) || "";
+                docTitle.textContent = titleOf(note);
+                renderList();
+                updateStatus();
+                saveState.textContent = "Saved";
+            }
 
             /* Keep the sidebar timestamps fresh */
             setInterval(() => {
@@ -931,11 +1023,32 @@
                 }
             }, 60000);
 
-            let saveTimer;
+            let saveTimer = null;
+
+            function saveActiveNote() {
+                saveTimer = null;
+                const note = activeNote();
+                if (!note) return;
+                writeNote(note, pad.value)
+                    .then(() => {
+                        saveState.textContent = "Saved";
+                    })
+                    .catch((err) => {
+                        console.error("Could not save note:", err);
+                        saveState.textContent = "Save failed";
+                    });
+            }
+
+            function flushPendingSave() {
+                if (saveTimer === null) return;
+                clearTimeout(saveTimer);
+                saveActiveNote();
+            }
+
             function onEdit() {
                 const note = activeNote();
+                if (!note) return;
                 note.title = titleInput.value;
-                note.text = pad.value;
                 note.updated = Date.now();
                 docTitle.textContent = titleOf(note);
                 const title = list.querySelector(
@@ -947,10 +1060,7 @@
                 updateStatus();
                 saveState.textContent = "Saving…";
                 clearTimeout(saveTimer);
-                saveTimer = setTimeout(() => {
-                    persistNotes();
-                    saveState.textContent = "Saved";
-                }, 200);
+                saveTimer = setTimeout(saveActiveNote, 200);
             }
             pad.addEventListener("input", onEdit);
             titleInput.addEventListener("input", onEdit);
@@ -963,12 +1073,11 @@
                 }
             });
 
-            /* Flush an unsaved edit if the tab closes within the debounce window */
-            addEventListener("beforeunload", () => {
-                const note = activeNote();
-                note.title = titleInput.value;
-                note.text = pad.value;
-                persistNotes();
+            /* Flush an unsaved edit if the tab closes or goes to background
+               within the debounce window */
+            addEventListener("beforeunload", flushPendingSave);
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "hidden") flushPendingSave();
             });
 
             /* ---------- Settings ---------- */
@@ -1053,6 +1162,7 @@
             /* ---------- Download ---------- */
 
             function download() {
+                if (!activeNote()) return;
                 const heading = titleInput.value.trim();
                 if (!pad.value.trim() && !heading) {
                     titleInput.focus();
@@ -1083,6 +1193,11 @@
                     e.preventDefault();
                     download();
                 }
+            });
+
+            init().catch((err) => {
+                console.error("Could not open note storage:", err);
+                saveState.textContent = "Storage unavailable";
             });
         </script>
     </body>
