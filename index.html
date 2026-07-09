@@ -3,7 +3,31 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>note.</title>
+        <title>Note - Minimal Notepad</title>
+        <meta
+            name="description"
+            content="A fast, minimal notepad in your browser. Write multiple notes with autosave, pure-black dark mode, and .txt download. No account needed."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Note - Minimal Notepad" />
+        <meta
+            property="og:description"
+            content="A fast, minimal notepad in your browser. Multiple notes, autosave, dark mode, and .txt download."
+        />
+        <meta
+            name="theme-color"
+            content="#faf8f3"
+            media="(prefers-color-scheme: light)"
+        />
+        <meta
+            name="theme-color"
+            content="#000000"
+            media="(prefers-color-scheme: dark)"
+        />
+        <link
+            rel="icon"
+            href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111111'/%3E%3Ctext x='32' y='47' font-family='-apple-system,Segoe UI,Arial,sans-serif' font-size='42' font-weight='700' text-anchor='middle' fill='%23fff'%3En%3C/text%3E%3C/svg%3E"
+        />
         <script>
             /* Apply saved theme before first paint to avoid a flash */
             (function () {
@@ -56,20 +80,31 @@
             }
 
             header {
+                position: relative;
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
-                max-width: 44rem;
-                width: 100%;
-                margin: 0 auto;
-                padding: 1.4rem 1.5rem 1rem;
+                padding: 0.75rem 1.1rem;
                 border-bottom: 1px solid var(--line);
+            }
+
+            .doc-title {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+                max-width: 38vw;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-size: 0.8rem;
+                color: var(--faint);
             }
 
             .wordmark {
                 font-weight: 600;
-                font-size: 1.15rem;
+                font-size: 1.1rem;
                 letter-spacing: -0.02em;
+                margin-left: 0.65rem;
                 user-select: none;
             }
             .wordmark::after {
@@ -89,14 +124,15 @@
                 cursor: pointer;
                 transition:
                     color 0.15s ease,
-                    border-color 0.15s ease;
+                    border-color 0.15s ease,
+                    background 0.15s ease;
             }
             button:hover {
                 color: var(--ink);
                 border-color: var(--faint);
             }
             button:focus-visible {
-                outline: 1px solid var(--accent);
+                outline: 2px solid var(--accent);
                 outline-offset: 2px;
             }
 
@@ -115,6 +151,214 @@
             #download {
                 margin-left: auto;
             }
+
+            /* ---------- Layout: sidebar + editor ---------- */
+
+            main {
+                flex: 1;
+                display: flex;
+                min-height: 0;
+                position: relative;
+            }
+
+            #sidebar {
+                display: flex;
+                flex-direction: column;
+                width: 16rem;
+                min-height: 0;
+                background: var(--bg);
+                border-right: 1px solid var(--line);
+            }
+            body.no-sidebar #sidebar {
+                display: none;
+            }
+
+            .side-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.7rem 0.7rem 0.4rem 1rem;
+            }
+            .side-head h2 {
+                font-size: 0.68rem;
+                font-weight: 600;
+                letter-spacing: 0.09em;
+                text-transform: uppercase;
+                color: var(--faint);
+            }
+            #new-note {
+                width: 1.7rem;
+                height: 1.7rem;
+            }
+
+            #note-list {
+                flex: 1;
+                overflow-y: auto;
+                scrollbar-width: thin;
+                scrollbar-color: var(--line) transparent;
+                list-style: none;
+                padding: 0 0.6rem 0.8rem;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .note-item {
+                display: flex;
+                align-items: center;
+                border-radius: 0.5rem;
+            }
+            .note-item:hover {
+                background: color-mix(in srgb, var(--line) 55%, transparent);
+            }
+            .note-item.active {
+                background: var(--line);
+            }
+            .note-open {
+                flex: 1;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.15rem;
+                text-align: left;
+                border: none;
+                border-radius: 0.5rem;
+                padding: 0.5rem 0.2rem 0.5rem 0.65rem;
+                letter-spacing: 0;
+            }
+            .note-title {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-size: 0.8rem;
+            }
+            .note-time {
+                font-size: 0.65rem;
+                color: var(--faint);
+            }
+            .note-item.active .note-title {
+                color: var(--ink);
+            }
+            .note-del {
+                border: none;
+                padding: 0.15rem 0.5rem;
+                font-size: 0.9rem;
+                line-height: 1;
+                opacity: 0;
+            }
+            .note-del:hover {
+                color: #dc2626;
+            }
+            .note-item:hover .note-del,
+            .note-item.active .note-del,
+            .note-del:focus-visible {
+                opacity: 1;
+            }
+
+            .editor {
+                flex: 1;
+                display: flex;
+                min-width: 0;
+            }
+            .sheet {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                max-width: 44rem;
+                margin: 0 auto;
+                padding: 1.6rem 1.5rem 0;
+            }
+
+            #title {
+                border: none;
+                background: transparent;
+                color: inherit;
+                font: inherit;
+                font-size: 1.5rem;
+                font-weight: 650;
+                letter-spacing: -0.02em;
+                padding: 0 0 0.7rem;
+                caret-color: var(--accent);
+            }
+            #title:focus {
+                outline: none;
+            }
+            #title::placeholder {
+                color: var(--faint);
+                opacity: 0.5;
+            }
+
+            textarea {
+                flex: 1;
+                width: 100%;
+                padding: 0.2rem 0 1.5rem;
+                border: none;
+                resize: none;
+                background: transparent;
+                color: inherit;
+                font: inherit;
+                font-size: 0.95rem;
+                line-height: 1.8;
+                caret-color: var(--accent);
+                scrollbar-width: thin;
+                scrollbar-color: var(--line) transparent;
+            }
+            textarea:focus {
+                outline: none;
+            }
+            textarea::placeholder,
+            #title::placeholder {
+                color: var(--faint);
+                opacity: 0.6;
+            }
+            ::selection {
+                background: var(--accent);
+                color: var(--bg);
+            }
+
+            .status {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+                padding: 0.55rem 0 0.8rem;
+                border-top: 1px solid var(--line);
+                font-size: 0.68rem;
+                letter-spacing: 0.04em;
+                color: var(--faint);
+                user-select: none;
+            }
+
+            /* On small screens the sidebar becomes an overlay drawer */
+            #scrim {
+                display: none;
+            }
+            @media (max-width: 720px) {
+                #sidebar {
+                    position: absolute;
+                    inset: 0 auto 0 0;
+                    width: min(16rem, 82vw);
+                    z-index: 5;
+                    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.15);
+                }
+                body:not(.no-sidebar) #scrim {
+                    display: block;
+                    position: absolute;
+                    inset: 0;
+                    z-index: 4;
+                    background: rgba(0, 0, 0, 0.35);
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                * {
+                    transition: none !important;
+                    animation: none !important;
+                }
+            }
+
+            /* ---------- Settings modal ---------- */
 
             .overlay {
                 position: fixed;
@@ -230,42 +474,49 @@
                 background: var(--ink);
             }
 
-            textarea {
-                flex: 1;
-                width: 100%;
-                max-width: 44rem;
-                margin: 0 auto;
-                padding: 1.75rem 1.5rem 4rem;
-                border: none;
-                resize: none;
-                background: transparent;
-                color: inherit;
-                font: inherit;
-                font-size: 0.95rem;
-                line-height: 1.8;
-                caret-color: var(--accent);
-            }
-            textarea:focus {
-                outline: none;
-            }
-            textarea::placeholder {
+            .confirm-text {
+                padding: 1rem 1.4rem 0.2rem;
+                font-size: 0.85rem;
+                line-height: 1.55;
                 color: var(--faint);
-                opacity: 0.6;
             }
-            ::selection {
-                background: var(--accent);
-                color: var(--bg);
+            .confirm-text strong {
+                color: var(--ink);
+                font-weight: 500;
+            }
+            .modal-foot {
+                display: flex;
+                justify-content: flex-end;
+                gap: 0.5rem;
+                padding: 1.1rem 1.4rem 1.2rem;
+            }
+            .modal-foot button {
+                font-size: 0.78rem;
+                letter-spacing: 0;
+                padding: 0.45rem 1rem;
+                border-radius: 0.5rem;
+            }
+            button.danger {
+                background: #dc2626;
+                border-color: #dc2626;
+                color: #fff;
+            }
+            button.danger:hover {
+                background: #b91c1c;
+                border-color: #b91c1c;
+                color: #fff;
             }
         </style>
     </head>
     <body>
         <header>
-            <span class="wordmark">note</span>
             <button
-                id="download"
+                id="menu"
                 class="icon"
-                title="Download as .txt (⌘S)"
-                aria-label="Download"
+                title="Toggle sidebar"
+                aria-label="Toggle sidebar"
+                aria-expanded="true"
+                aria-controls="sidebar"
             >
                 <svg
                     viewBox="0 0 24 24"
@@ -274,6 +525,28 @@
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <path d="M9 4v16" />
+                </svg>
+            </button>
+            <h1 class="wordmark">note</h1>
+            <span id="doc-title" class="doc-title" aria-hidden="true"></span>
+            <button
+                id="download"
+                class="icon"
+                title="Download as .txt (⌘S)"
+                aria-label="Download note as text file"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
                 >
                     <path
                         d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
@@ -284,7 +557,8 @@
                 id="settings-btn"
                 class="icon"
                 title="Settings"
-                aria-label="Settings"
+                aria-label="Open settings"
+                aria-haspopup="dialog"
             >
                 <svg
                     viewBox="0 0 24 24"
@@ -293,6 +567,7 @@
                     stroke-width="2"
                     stroke-linecap="round"
                     stroke-linejoin="round"
+                    aria-hidden="true"
                 >
                     <circle cx="12" cy="12" r="3" />
                     <path
@@ -301,6 +576,58 @@
                 </svg>
             </button>
         </header>
+
+        <main>
+            <aside id="sidebar" aria-label="Notes">
+                <div class="side-head">
+                    <h2>Notes</h2>
+                    <button
+                        id="new-note"
+                        class="icon"
+                        title="New note"
+                        aria-label="Create new note"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            aria-hidden="true"
+                        >
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                    </button>
+                </div>
+                <ul id="note-list"></ul>
+            </aside>
+            <div id="scrim" aria-hidden="true"></div>
+
+            <div class="editor">
+                <div class="sheet">
+                    <input
+                        id="title"
+                        type="text"
+                        placeholder="Title"
+                        spellcheck="false"
+                        aria-label="Note title"
+                        autocomplete="off"
+                        maxlength="40"
+                    />
+                    <textarea
+                        id="pad"
+                        placeholder="Start typing…"
+                        spellcheck="false"
+                        aria-label="Note body"
+                        autofocus
+                    ></textarea>
+                    <div class="status">
+                        <span id="save-state" role="status">Saved</span>
+                        <span id="count" aria-hidden="true"></span>
+                    </div>
+                </div>
+            </div>
+        </main>
 
         <div id="overlay" class="overlay" hidden>
             <div
@@ -311,7 +638,9 @@
             >
                 <div class="modal-head">
                     <h2 id="settings-title">Settings</h2>
-                    <button id="settings-close" aria-label="Close">×</button>
+                    <button id="settings-close" aria-label="Close settings">
+                        ×
+                    </button>
                 </div>
                 <div class="modal-body">
                     <div class="row">
@@ -319,9 +648,14 @@
                             <strong>Theme</strong>
                             <span>Light or pure-black dark appearance</span>
                         </div>
-                        <div class="seg" id="theme-seg">
-                            <button data-t="light">Light</button>
-                            <button data-t="dark">Dark</button>
+                        <div
+                            class="seg"
+                            id="theme-seg"
+                            role="group"
+                            aria-label="Theme"
+                        >
+                            <button data-v="light">Light</button>
+                            <button data-v="dark">Dark</button>
                         </div>
                     </div>
                     <div class="row">
@@ -329,42 +663,315 @@
                             <strong>Text size</strong>
                             <span>Editor font size</span>
                         </div>
-                        <div class="seg" id="size-seg">
-                            <button data-s="0.85rem">Small</button>
-                            <button data-s="0.95rem">Medium</button>
-                            <button data-s="1.1rem">Large</button>
+                        <div
+                            class="seg"
+                            id="size-seg"
+                            role="group"
+                            aria-label="Text size"
+                        >
+                            <button data-v="0.85rem">Small</button>
+                            <button data-v="0.95rem">Medium</button>
+                            <button data-v="1.1rem">Large</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">
+                            <strong>Sidebar</strong>
+                            <span>Show the notes list panel</span>
+                        </div>
+                        <div
+                            class="seg"
+                            id="sidebar-seg"
+                            role="group"
+                            aria-label="Sidebar"
+                        >
+                            <button data-v="on">Show</button>
+                            <button data-v="off">Hide</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <textarea
-            id="pad"
-            placeholder="Start typing..."
-            spellcheck="false"
-            autofocus
-        ></textarea>
+        <div id="confirm-overlay" class="overlay" hidden>
+            <div
+                class="modal"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="confirm-title"
+                aria-describedby="confirm-text"
+            >
+                <div class="modal-head">
+                    <h2 id="confirm-title">Delete note</h2>
+                    <button id="confirm-x" aria-label="Close">×</button>
+                </div>
+                <p id="confirm-text" class="confirm-text"></p>
+                <div class="modal-foot">
+                    <button id="confirm-cancel">Cancel</button>
+                    <button id="confirm-delete" class="danger">Delete</button>
+                </div>
+            </div>
+        </div>
 
         <script>
             const pad = document.getElementById("pad");
-            const KEY = "note.text";
+            const titleInput = document.getElementById("title");
+            const list = document.getElementById("note-list");
+            const mobile = matchMedia("(max-width: 720px)");
+            const LS = {
+                notes: "note.notes",
+                active: "note.active",
+                theme: "note.theme",
+                size: "note.size",
+            };
+            localStorage.removeItem("note.sidebar");
 
-            pad.value = localStorage.getItem(KEY) || "";
+            /* ---------- Notes store ---------- */
+
+            let notes = null;
+            try {
+                notes = JSON.parse(localStorage.getItem(LS.notes));
+            } catch (e) {}
+            if (!Array.isArray(notes) || notes.length === 0) {
+                /* Migrate the old single-note storage if present */
+                const legacy = localStorage.getItem("note.text") || "";
+                notes = [makeNote(legacy)];
+                localStorage.removeItem("note.text");
+                persistNotes();
+            }
+
+            let activeId = localStorage.getItem(LS.active);
+            if (!notes.some((n) => n.id === activeId)) activeId = notes[0].id;
+
+            function makeNote(text) {
+                return {
+                    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                    title: "",
+                    text: text || "",
+                    updated: Date.now(),
+                };
+            }
+            /* Older notes: stamp a time and promote the first line to title */
+            notes.forEach((n) => {
+                n.updated = n.updated || Date.now();
+                if (n.title === undefined) {
+                    const lines = n.text.split("\n");
+                    n.title = (lines.shift() || "").trim();
+                    n.text = lines.join("\n").replace(/^\n+/, "");
+                }
+                n.title = n.title.slice(0, 40);
+            });
+            notes.sort((a, b) => b.updated - a.updated);
+
+            function timeAgo(ts) {
+                const mins = Math.floor((Date.now() - ts) / 60000);
+                if (mins < 1) return "Just now";
+                if (mins < 60) return mins + "m ago";
+                const hours = Math.floor(mins / 60);
+                if (hours < 24) return hours + "h ago";
+                const days = Math.floor(hours / 24);
+                if (days === 1) return "Yesterday";
+                if (days < 7) return days + "d ago";
+                return new Date(ts).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                });
+            }
+            function persistNotes() {
+                localStorage.setItem(LS.notes, JSON.stringify(notes));
+            }
+            function activeNote() {
+                return notes.find((n) => n.id === activeId);
+            }
+            function titleOf(note) {
+                return note.title.trim().slice(0, 40) || "Untitled";
+            }
+
+            const docTitle = document.getElementById("doc-title");
+
+            function openNote(id) {
+                activeId = id;
+                localStorage.setItem(LS.active, id);
+                titleInput.value = activeNote().title;
+                pad.value = activeNote().text;
+                docTitle.textContent = titleOf(activeNote());
+                renderList();
+                updateStatus();
+                if (mobile.matches) setSidebar("off", true);
+                if (titleInput.value) pad.focus();
+                else titleInput.focus();
+            }
+
+            function renderList() {
+                list.innerHTML = "";
+                for (const note of notes) {
+                    const li = document.createElement("li");
+                    li.className =
+                        "note-item" + (note.id === activeId ? " active" : "");
+                    li.dataset.id = note.id;
+
+                    const open = document.createElement("button");
+                    open.className = "note-open";
+                    const title = document.createElement("span");
+                    title.className = "note-title";
+                    title.textContent = titleOf(note);
+                    const time = document.createElement("span");
+                    time.className = "note-time";
+                    time.textContent = timeAgo(note.updated);
+                    open.append(title, time);
+                    if (note.id === activeId)
+                        open.setAttribute("aria-current", "true");
+                    open.addEventListener("click", () => openNote(note.id));
+
+                    const del = document.createElement("button");
+                    del.className = "note-del";
+                    del.textContent = "×";
+                    del.setAttribute(
+                        "aria-label",
+                        'Delete note "' + titleOf(note) + '"',
+                    );
+                    del.addEventListener("click", () => deleteNote(note.id));
+
+                    li.append(open, del);
+                    list.append(li);
+                }
+            }
+
+            function deleteNote(id) {
+                const note = notes.find((n) => n.id === id);
+                const doDelete = () => {
+                    notes = notes.filter((n) => n.id !== id);
+                    if (notes.length === 0) notes = [makeNote("")];
+                    persistNotes();
+                    if (id === activeId) openNote(notes[0].id);
+                    else renderList();
+                };
+                /* Empty notes are removed without asking */
+                if (!note.title.trim() && !note.text.trim()) doDelete();
+                else askDelete(note, doDelete);
+            }
+
+            /* ---------- Delete confirmation modal ---------- */
+
+            const confirmOverlay = document.getElementById("confirm-overlay");
+            const confirmText = document.getElementById("confirm-text");
+            let confirmAction = null;
+
+            function askDelete(note, action) {
+                confirmText.innerHTML = "";
+                confirmText.append(
+                    "Are you sure you want to delete ",
+                    Object.assign(document.createElement("strong"), {
+                        textContent: "“" + titleOf(note) + "”",
+                    }),
+                    "? This cannot be undone.",
+                );
+                confirmAction = action;
+                confirmOverlay.hidden = false;
+                document.getElementById("confirm-cancel").focus();
+            }
+            function closeConfirm() {
+                confirmOverlay.hidden = true;
+                confirmAction = null;
+            }
+            document
+                .getElementById("confirm-delete")
+                .addEventListener("click", () => {
+                    if (confirmAction) confirmAction();
+                    closeConfirm();
+                });
+            document
+                .getElementById("confirm-cancel")
+                .addEventListener("click", closeConfirm);
+            document
+                .getElementById("confirm-x")
+                .addEventListener("click", closeConfirm);
+            confirmOverlay.addEventListener("click", (e) => {
+                if (e.target === confirmOverlay) closeConfirm();
+            });
+
+            document.getElementById("new-note").addEventListener("click", () => {
+                const note = makeNote("");
+                notes.unshift(note);
+                persistNotes();
+                openNote(note.id);
+            });
+
+            /* ---------- Editing & autosave ---------- */
+
+            const saveState = document.getElementById("save-state");
+            const countEl = document.getElementById("count");
+
+            function updateStatus() {
+                const text = pad.value;
+                const words = text.trim()
+                    ? text.trim().split(/\s+/).length
+                    : 0;
+                countEl.textContent =
+                    words +
+                    (words === 1 ? " word · " : " words · ") +
+                    text.length +
+                    (text.length === 1 ? " character" : " characters");
+            }
+
+            titleInput.value = activeNote().title;
+            pad.value = activeNote().text;
+            docTitle.textContent = titleOf(activeNote());
+            renderList();
+            updateStatus();
+
+            /* Keep the sidebar timestamps fresh */
+            setInterval(() => {
+                for (const li of list.children) {
+                    const note = notes.find((n) => n.id === li.dataset.id);
+                    if (note)
+                        li.querySelector(".note-time").textContent = timeAgo(
+                            note.updated,
+                        );
+                }
+            }, 60000);
 
             let saveTimer;
-            pad.addEventListener("input", () => {
-                clearTimeout(saveTimer);
-                saveTimer = setTimeout(
-                    () => localStorage.setItem(KEY, pad.value),
-                    200,
+            function onEdit() {
+                const note = activeNote();
+                note.title = titleInput.value;
+                note.text = pad.value;
+                note.updated = Date.now();
+                docTitle.textContent = titleOf(note);
+                const title = list.querySelector(
+                    ".note-item.active .note-title",
                 );
+                if (title) title.textContent = titleOf(note);
+                const time = list.querySelector(".note-item.active .note-time");
+                if (time) time.textContent = timeAgo(note.updated);
+                updateStatus();
+                saveState.textContent = "Saving…";
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(() => {
+                    persistNotes();
+                    saveState.textContent = "Saved";
+                }, 200);
+            }
+            pad.addEventListener("input", onEdit);
+            titleInput.addEventListener("input", onEdit);
+
+            /* Enter in the title moves to the body */
+            titleInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    pad.focus();
+                }
             });
 
             /* Flush an unsaved edit if the tab closes within the debounce window */
-            addEventListener("beforeunload", () =>
-                localStorage.setItem(KEY, pad.value),
-            );
+            addEventListener("beforeunload", () => {
+                const note = activeNote();
+                note.title = titleInput.value;
+                note.text = pad.value;
+                persistNotes();
+            });
+
+            /* ---------- Settings ---------- */
 
             const overlay = document.getElementById("overlay");
 
@@ -382,26 +989,27 @@
                 if (e.target === overlay) overlay.hidden = true;
             });
             addEventListener("keydown", (e) => {
-                if (e.key === "Escape") overlay.hidden = true;
+                if (e.key === "Escape") {
+                    overlay.hidden = true;
+                    closeConfirm();
+                }
             });
 
             function initSeg(id, saved, apply) {
                 const buttons = document.querySelectorAll("#" + id + " button");
                 const set = (value, persist) => {
                     apply(value, persist);
-                    buttons.forEach((b) =>
-                        b.classList.toggle(
-                            "active",
-                            (b.dataset.t || b.dataset.s) === value,
-                        ),
-                    );
+                    buttons.forEach((b) => {
+                        const on = b.dataset.v === value;
+                        b.classList.toggle("active", on);
+                        b.setAttribute("aria-pressed", on);
+                    });
                 };
                 buttons.forEach((b) =>
-                    b.addEventListener("click", () =>
-                        set(b.dataset.t || b.dataset.s, true),
-                    ),
+                    b.addEventListener("click", () => set(b.dataset.v, true)),
                 );
                 set(saved, false);
+                return set;
             }
 
             initSeg(
@@ -409,30 +1017,55 @@
                 document.documentElement.dataset.theme,
                 (t, persist) => {
                     document.documentElement.dataset.theme = t;
-                    if (persist) localStorage.setItem("note.theme", t);
+                    if (persist) localStorage.setItem(LS.theme, t);
                 },
             );
 
             initSeg(
                 "size-seg",
-                localStorage.getItem("note.size") || "0.95rem",
+                localStorage.getItem(LS.size) || "0.95rem",
                 (s, persist) => {
                     pad.style.fontSize = s;
-                    if (persist) localStorage.setItem("note.size", s);
+                    if (persist) localStorage.setItem(LS.size, s);
                 },
             );
 
+            /* The sidebar starts visible on desktop, hidden on phones;
+               hiding lasts for the session */
+            const menuBtn = document.getElementById("menu");
+            let sidebarState;
+            const setSidebar = initSeg(
+                "sidebar-seg",
+                mobile.matches ? "off" : "on",
+                (v) => {
+                    sidebarState = v;
+                    document.body.classList.toggle("no-sidebar", v === "off");
+                    menuBtn.setAttribute("aria-expanded", v === "on");
+                },
+            );
+            menuBtn.addEventListener("click", () =>
+                setSidebar(sidebarState === "on" ? "off" : "on", true),
+            );
+            document
+                .getElementById("scrim")
+                .addEventListener("click", () => setSidebar("off", true));
+
+            /* ---------- Download ---------- */
+
             function download() {
-                if (!pad.value.trim()) {
-                    pad.focus();
+                const heading = titleInput.value.trim();
+                if (!pad.value.trim() && !heading) {
+                    titleInput.focus();
                     return;
                 }
-                const firstLine = pad.value.split("\n")[0].trim().slice(0, 40);
+                const content = heading
+                    ? heading + "\n\n" + pad.value
+                    : pad.value;
                 const name =
-                    (firstLine.replace(/[^\w\- ]/g, "").trim() || "note") +
-                    ".txt";
+                    (titleOf(activeNote()).replace(/[^\w\- ]/g, "").trim() ||
+                        "note") + ".txt";
                 const url = URL.createObjectURL(
-                    new Blob([pad.value], { type: "text/plain" }),
+                    new Blob([content], { type: "text/plain" }),
                 );
                 const a = Object.assign(document.createElement("a"), {
                     href: url,
