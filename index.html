@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>note.</title>
+        <script>
+            /* Apply saved theme before first paint to avoid a flash */
+            (function () {
+                var t = localStorage.getItem("note.theme");
+                if (!t)
+                    t = matchMedia("(prefers-color-scheme: dark)").matches
+                        ? "dark"
+                        : "light";
+                document.documentElement.dataset.theme = t;
+            })();
+        </script>
+        <style>
+            :root {
+                --bg: #faf8f3;
+                --ink: #1f1d1a;
+                --faint: #8f8a80;
+                --line: #e7e3da;
+                --accent: #d97706;
+                --font:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica,
+                    Arial, sans-serif;
+            }
+            [data-theme="dark"] {
+                --bg: #000;
+                --ink: #d8d4cc;
+                --faint: #5c5952;
+                --line: #1c1c1c;
+                --accent: #f59e0b;
+            }
+
+            * {
+                margin: 0;
+                box-sizing: border-box;
+            }
+
+            html,
+            body {
+                height: 100%;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--ink);
+                font-family: var(--font);
+                display: flex;
+                flex-direction: column;
+                transition:
+                    background 0.25s ease,
+                    color 0.25s ease;
+            }
+
+            header {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                max-width: 44rem;
+                width: 100%;
+                margin: 0 auto;
+                padding: 1.4rem 1.5rem 1rem;
+                border-bottom: 1px solid var(--line);
+            }
+
+            .wordmark {
+                font-weight: 600;
+                font-size: 1.15rem;
+                letter-spacing: -0.02em;
+                user-select: none;
+            }
+            .wordmark::after {
+                content: ".";
+                color: var(--accent);
+            }
+
+            button {
+                font: inherit;
+                font-size: 0.7rem;
+                letter-spacing: 0.08em;
+                color: var(--faint);
+                background: none;
+                border: 1px solid var(--line);
+                border-radius: 999px;
+                padding: 0.3rem 0.75rem;
+                cursor: pointer;
+                transition:
+                    color 0.15s ease,
+                    border-color 0.15s ease;
+            }
+            button:hover {
+                color: var(--ink);
+                border-color: var(--faint);
+            }
+            button:focus-visible {
+                outline: 1px solid var(--accent);
+                outline-offset: 2px;
+            }
+
+            .icon {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 2.1rem;
+                height: 2.1rem;
+                padding: 0;
+            }
+            .icon svg {
+                width: 15px;
+                height: 15px;
+            }
+            #download {
+                margin-left: auto;
+            }
+
+            .overlay {
+                position: fixed;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(3px);
+                z-index: 10;
+                animation: fade 0.15s ease;
+            }
+            .overlay[hidden] {
+                display: none;
+            }
+
+            .modal {
+                width: min(26rem, calc(100% - 2.5rem));
+                background: var(--bg);
+                border: 1px solid var(--line);
+                border-radius: 0.9rem;
+                box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+                overflow: hidden;
+                animation: pop 0.18s ease;
+            }
+            [data-theme="dark"] .modal {
+                border-color: #262626;
+            }
+            @keyframes fade {
+                from {
+                    opacity: 0;
+                }
+            }
+            @keyframes pop {
+                from {
+                    opacity: 0;
+                    transform: scale(0.96) translateY(8px);
+                }
+            }
+
+            .modal-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 1.1rem 1.4rem;
+                border-bottom: 1px solid var(--line);
+            }
+            .modal-head h2 {
+                font-weight: 600;
+                font-size: 1rem;
+                letter-spacing: -0.01em;
+            }
+            .modal-head button {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 1.8rem;
+                height: 1.8rem;
+                padding: 0;
+                border: none;
+                border-radius: 50%;
+                font-size: 1.05rem;
+                line-height: 1;
+            }
+            .modal-head button:hover {
+                background: var(--line);
+            }
+
+            .modal-body {
+                padding: 0.3rem 1.4rem 1.2rem;
+            }
+
+            .modal .row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1.5rem;
+                padding: 1rem 0;
+            }
+            .modal .row + .row {
+                border-top: 1px solid var(--line);
+            }
+            .row-label {
+                display: flex;
+                flex-direction: column;
+                gap: 0.2rem;
+            }
+            .row-label strong {
+                font-size: 0.85rem;
+                font-weight: 500;
+            }
+            .row-label span {
+                font-size: 0.72rem;
+                color: var(--faint);
+            }
+
+            .seg {
+                display: flex;
+                gap: 0.2rem;
+                padding: 0.2rem;
+                border: 1px solid var(--line);
+                border-radius: 0.6rem;
+            }
+            .seg button {
+                border: none;
+                border-radius: 0.4rem;
+                padding: 0.35rem 0.8rem;
+                font-size: 0.75rem;
+                letter-spacing: 0;
+            }
+            .seg button.active {
+                color: var(--bg);
+                background: var(--ink);
+            }
+
+            textarea {
+                flex: 1;
+                width: 100%;
+                max-width: 44rem;
+                margin: 0 auto;
+                padding: 1.75rem 1.5rem 4rem;
+                border: none;
+                resize: none;
+                background: transparent;
+                color: inherit;
+                font: inherit;
+                font-size: 0.95rem;
+                line-height: 1.8;
+                caret-color: var(--accent);
+            }
+            textarea:focus {
+                outline: none;
+            }
+            textarea::placeholder {
+                color: var(--faint);
+                opacity: 0.6;
+            }
+            ::selection {
+                background: var(--accent);
+                color: var(--bg);
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <span class="wordmark">note</span>
+            <button
+                id="download"
+                class="icon"
+                title="Download as .txt (⌘S)"
+                aria-label="Download"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path
+                        d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+                    />
+                </svg>
+            </button>
+            <button
+                id="settings-btn"
+                class="icon"
+                title="Settings"
+                aria-label="Settings"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                    />
+                </svg>
+            </button>
+        </header>
+
+        <div id="overlay" class="overlay" hidden>
+            <div
+                class="modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="settings-title"
+            >
+                <div class="modal-head">
+                    <h2 id="settings-title">Settings</h2>
+                    <button id="settings-close" aria-label="Close">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="row-label">
+                            <strong>Theme</strong>
+                            <span>Light or pure-black dark appearance</span>
+                        </div>
+                        <div class="seg" id="theme-seg">
+                            <button data-t="light">Light</button>
+                            <button data-t="dark">Dark</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="row-label">
+                            <strong>Text size</strong>
+                            <span>Editor font size</span>
+                        </div>
+                        <div class="seg" id="size-seg">
+                            <button data-s="0.85rem">Small</button>
+                            <button data-s="0.95rem">Medium</button>
+                            <button data-s="1.1rem">Large</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <textarea
+            id="pad"
+            placeholder="Start typing..."
+            spellcheck="false"
+            autofocus
+        ></textarea>
+
+        <script>
+            const pad = document.getElementById("pad");
+            const KEY = "note.text";
+
+            pad.value = localStorage.getItem(KEY) || "";
+
+            let saveTimer;
+            pad.addEventListener("input", () => {
+                clearTimeout(saveTimer);
+                saveTimer = setTimeout(
+                    () => localStorage.setItem(KEY, pad.value),
+                    200,
+                );
+            });
+
+            /* Flush an unsaved edit if the tab closes within the debounce window */
+            addEventListener("beforeunload", () =>
+                localStorage.setItem(KEY, pad.value),
+            );
+
+            const overlay = document.getElementById("overlay");
+
+            document
+                .getElementById("settings-btn")
+                .addEventListener("click", () => {
+                    overlay.hidden = false;
+                });
+            document
+                .getElementById("settings-close")
+                .addEventListener("click", () => {
+                    overlay.hidden = true;
+                });
+            overlay.addEventListener("click", (e) => {
+                if (e.target === overlay) overlay.hidden = true;
+            });
+            addEventListener("keydown", (e) => {
+                if (e.key === "Escape") overlay.hidden = true;
+            });
+
+            function initSeg(id, saved, apply) {
+                const buttons = document.querySelectorAll("#" + id + " button");
+                const set = (value, persist) => {
+                    apply(value, persist);
+                    buttons.forEach((b) =>
+                        b.classList.toggle(
+                            "active",
+                            (b.dataset.t || b.dataset.s) === value,
+                        ),
+                    );
+                };
+                buttons.forEach((b) =>
+                    b.addEventListener("click", () =>
+                        set(b.dataset.t || b.dataset.s, true),
+                    ),
+                );
+                set(saved, false);
+            }
+
+            initSeg(
+                "theme-seg",
+                document.documentElement.dataset.theme,
+                (t, persist) => {
+                    document.documentElement.dataset.theme = t;
+                    if (persist) localStorage.setItem("note.theme", t);
+                },
+            );
+
+            initSeg(
+                "size-seg",
+                localStorage.getItem("note.size") || "0.95rem",
+                (s, persist) => {
+                    pad.style.fontSize = s;
+                    if (persist) localStorage.setItem("note.size", s);
+                },
+            );
+
+            function download() {
+                if (!pad.value.trim()) {
+                    pad.focus();
+                    return;
+                }
+                const firstLine = pad.value.split("\n")[0].trim().slice(0, 40);
+                const name =
+                    (firstLine.replace(/[^\w\- ]/g, "").trim() || "note") +
+                    ".txt";
+                const url = URL.createObjectURL(
+                    new Blob([pad.value], { type: "text/plain" }),
+                );
+                const a = Object.assign(document.createElement("a"), {
+                    href: url,
+                    download: name,
+                });
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            document
+                .getElementById("download")
+                .addEventListener("click", download);
+            addEventListener("keydown", (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+                    e.preventDefault();
+                    download();
+                }
+            });
+        </script>
+    </body>
+</html>
