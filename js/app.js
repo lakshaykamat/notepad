@@ -343,9 +343,19 @@ async function reloadNotes() {
 
 /* ---------- Startup ---------- */
 
+/* Ask the browser to never evict our IndexedDB. Warn once if it
+   refuses (then notes can vanish under disk pressure — export often). */
+async function requestPersistence() {
+    if (!navigator.storage?.persist) return;
+    const granted = await navigator.storage.persist();
+    if (!granted && !localStorage.getItem("note.persist-warned")) {
+        localStorage.setItem("note.persist-warned", "1");
+        showToast("Browser may evict notes — install the app or export backups");
+    }
+}
+
 async function init() {
-    /* Ask the browser not to evict our IndexedDB under storage pressure */
-    if (navigator.storage?.persist) navigator.storage.persist();
+    requestPersistence();
     await initStorage();
     state.notes = await readAllMeta();
     if (state.notes.length === 0) {
