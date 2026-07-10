@@ -344,6 +344,8 @@ async function reloadNotes() {
 /* ---------- Startup ---------- */
 
 async function init() {
+    /* Ask the browser not to evict our IndexedDB under storage pressure */
+    if (navigator.storage?.persist) navigator.storage.persist();
     await initStorage();
     state.notes = await readAllMeta();
     if (state.notes.length === 0) {
