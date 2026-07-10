@@ -1,0 +1,525 @@
+:root {
+    --bg: #f7efdf;
+    --ink: #2a241c;
+    --faint: #94886f;
+    --line: #e7dcc4;
+    --accent: #d97706;
+    --font:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica,
+        Arial, sans-serif;
+}
+[data-theme="dark"] {
+    --bg: #000;
+    --ink: #d8d4cc;
+    --faint: #5c5952;
+    --line: #1c1c1c;
+    --accent: #f59e0b;
+}
+
+* {
+    margin: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    display: flex;
+    flex-direction: column;
+    transition:
+        background 0.25s ease,
+        color 0.25s ease;
+}
+
+header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.1rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.doc-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 38vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    color: var(--faint);
+}
+
+.wordmark {
+    font-weight: 600;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+    margin-left: 0.65rem;
+    user-select: none;
+}
+.wordmark::after {
+    content: ".";
+    color: var(--accent);
+}
+
+button {
+    font: inherit;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: var(--faint);
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    transition:
+        color 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+button:hover {
+    color: var(--ink);
+    border-color: var(--faint);
+}
+button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+}
+.icon svg {
+    width: 15px;
+    height: 15px;
+}
+#download {
+    margin-left: auto;
+}
+
+/* ---------- Layout: sidebar + editor ---------- */
+
+main {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    position: relative;
+}
+
+#sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 16rem;
+    min-height: 0;
+    background: var(--bg);
+    border-right: 1px solid var(--line);
+}
+body.no-sidebar #sidebar {
+    display: none;
+}
+
+.side-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 0.7rem 0.4rem 1rem;
+}
+.side-head h2 {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+#new-note {
+    width: 1.7rem;
+    height: 1.7rem;
+}
+
+#note-list {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+    list-style: none;
+    padding: 0 0.6rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.note-item {
+    display: flex;
+    align-items: center;
+    border-radius: 0.5rem;
+}
+.note-item:hover {
+    background: color-mix(in srgb, var(--line) 55%, transparent);
+}
+.note-item.active {
+    background: var(--line);
+}
+.note-open {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+    text-align: left;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.2rem 0.5rem 0.65rem;
+    letter-spacing: 0;
+}
+.note-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+.note-time {
+    font-size: 0.65rem;
+    color: var(--faint);
+}
+.note-item.active .note-title {
+    color: var(--ink);
+}
+.note-del {
+    border: none;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1;
+    opacity: 0;
+}
+.note-del:hover {
+    color: #dc2626;
+}
+.note-item:hover .note-del,
+.note-item.active .note-del,
+.note-del:focus-visible {
+    opacity: 1;
+}
+.note-pin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    padding: 0.15rem 0.3rem;
+    line-height: 1;
+    opacity: 0;
+}
+.note-pin svg {
+    width: 12px;
+    height: 12px;
+}
+.note-item:hover .note-pin,
+.note-pin:focus-visible {
+    opacity: 1;
+}
+.note-item.pinned .note-pin {
+    color: var(--accent);
+}
+.list-sep {
+    border-top: 1px solid var(--line);
+    margin: 0.35rem 0.4rem;
+}
+
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 2rem;
+    transform: translateX(-50%) translateY(8px);
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 0.75rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%);
+}
+
+.editor {
+    flex: 1;
+    display: flex;
+    min-width: 0;
+}
+.sheet {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 1.6rem 1.5rem 0;
+}
+
+#title {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 1.5rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    padding: 0 0 0.7rem;
+    caret-color: var(--accent);
+}
+#title:focus {
+    outline: none;
+}
+#title::placeholder {
+    color: var(--faint);
+    opacity: 0.5;
+}
+
+textarea {
+    flex: 1;
+    width: 100%;
+    padding: 0.2rem 0 1.5rem;
+    border: none;
+    resize: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 0.95rem;
+    line-height: 1.8;
+    caret-color: var(--accent);
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+}
+textarea:focus {
+    outline: none;
+}
+textarea::placeholder,
+#title::placeholder {
+    color: var(--faint);
+    opacity: 0.6;
+}
+::selection {
+    background: var(--accent);
+    color: var(--bg);
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.55rem 0 0.8rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    color: var(--faint);
+    user-select: none;
+}
+
+/* On small screens the sidebar becomes an overlay drawer */
+#scrim {
+    display: none;
+}
+@media (max-width: 720px) {
+    #sidebar {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: min(16rem, 82vw);
+        z-index: 5;
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.15);
+    }
+    body:not(.no-sidebar) #scrim {
+        display: block;
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        background: rgba(0, 0, 0, 0.35);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* ---------- Settings modal ---------- */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 10;
+    animation: fade 0.15s ease;
+}
+.overlay[hidden] {
+    display: none;
+}
+
+.modal {
+    width: min(26rem, calc(100% - 2.5rem));
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 0.9rem;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    animation: pop 0.18s ease;
+}
+[data-theme="dark"] .modal {
+    border-color: #262626;
+}
+@keyframes fade {
+    from {
+        opacity: 0;
+    }
+}
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(8px);
+    }
+}
+
+.modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.4rem;
+    border-bottom: 1px solid var(--line);
+}
+.modal-head h2 {
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+}
+.modal-head button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.05rem;
+    line-height: 1;
+}
+.modal-head button:hover {
+    background: var(--line);
+}
+
+.modal-body {
+    padding: 0.3rem 1.4rem 1.2rem;
+}
+
+.modal .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+.modal .row + .row {
+    border-top: 1px solid var(--line);
+}
+.row-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+.row-label strong {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+.row-label span {
+    font-size: 0.72rem;
+    color: var(--faint);
+}
+
+.seg {
+    display: flex;
+    gap: 0.2rem;
+    padding: 0.2rem;
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+}
+.seg button {
+    border: none;
+    border-radius: 0.4rem;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.75rem;
+    letter-spacing: 0;
+}
+.seg button.active {
+    color: var(--bg);
+    background: var(--ink);
+}
+
+.row-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+.row-actions button {
+    font-size: 0.78rem;
+    letter-spacing: 0;
+    padding: 0.45rem 1rem;
+    border-radius: 0.5rem;
+}
+
+.confirm-text {
+    padding: 1rem 1.4rem 0.2rem;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--faint);
+}
+.confirm-text strong {
+    color: var(--ink);
+    font-weight: 500;
+}
+.modal-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1.1rem 1.4rem 1.2rem;
+}
+.modal-foot button {
+    font-size: 0.78rem;
+    letter-spacing: 0;
+    padding: 0.45rem 1rem;
+    border-radius: 0.5rem;
+}
+button.danger {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+button.danger:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+    color: #fff;
+}

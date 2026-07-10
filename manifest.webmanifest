@@ -1,0 +1,17 @@
+{
+    "name": "note.",
+    "short_name": "note",
+    "description": "A fast, minimal notepad in your browser. Multiple notes, autosave, dark mode, and .txt download.",
+    "start_url": "./",
+    "display": "standalone",
+    "background_color": "#f7efdf",
+    "theme_color": "#f7efdf",
+    "icons": [
+        {
+            "src": "icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}
