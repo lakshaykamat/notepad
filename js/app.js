@@ -223,14 +223,13 @@ function saveActiveNote() {
     saveTimer = null;
     const note = activeNote();
     if (!note) return;
-    writeNote(note, pad.value)
-        .then(() => {
-            saveState.textContent = "Saved";
-        })
-        .catch((err) => {
-            console.error("Could not save note:", err);
-            saveState.textContent = "Save failed";
-        });
+    try {
+        writeNote(note, pad.value);
+        saveState.textContent = "Saved";
+    } catch (err) {
+        console.error("Could not save note:", err);
+        saveState.textContent = "Save failed";
+    }
 }
 
 function flushPendingSave() {
