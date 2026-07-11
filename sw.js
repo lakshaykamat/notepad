@@ -1,7 +1,7 @@
 /* Offline cache for note. — network first, cache fallback,
    so updates arrive when online and the app still opens offline. */
 
-const CACHE = "note-v3";
+const CACHE = "note-v4";
 const ASSETS = [
     "./",
     "index.html",

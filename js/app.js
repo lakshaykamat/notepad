@@ -343,8 +343,8 @@ async function reloadNotes() {
 
 /* ---------- Startup ---------- */
 
-/* Ask the browser to never evict our IndexedDB. Warn once if it
-   refuses (then notes can vanish under disk pressure — export often). */
+/* Ask the browser to never evict this site's storage. Warn once if it
+   refuses (then notes can vanish under disk pressure - export often). */
 async function requestPersistence() {
     if (!navigator.storage?.persist) return;
     const granted = await navigator.storage.persist();

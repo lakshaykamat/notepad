@@ -7,7 +7,7 @@ The app is plain HTML, CSS, and JavaScript with zero dependencies and no build s
 ## Features
 
 - **Multiple notes** — create, switch between, and delete notes from a sidebar. Deleting a non-empty note asks for confirmation; empty notes are removed silently.
-- **Autosave** — every edit is saved to IndexedDB automatically (debounced, with a flush on tab close), so your notes survive refreshes and restarts.
+- **Autosave** — every edit is saved to localStorage automatically (debounced, with a flush on tab close), so your notes survive refreshes and restarts.
 - **Light & dark themes** — follows your system preference by default, with a manual toggle in Settings. Dark mode is pure black, and the theme is applied before first paint so there's no flash.
 - **Adjustable text size** — small, medium, or large editor font.
 - **Collapsible sidebar** — toggle it from the header; on small screens it becomes an overlay drawer.
@@ -46,7 +46,7 @@ The code is organized into small ES modules:
 index.html            markup and the before-paint theme snippet
 styles.css            all styling
 js/app.js             entry point: editor, note list, autosave, wiring
-js/storage.js         IndexedDB persistence and legacy migration
+js/storage.js         localStorage persistence and legacy migration
 js/notes.js           shared note state and helpers
 js/settings.js        settings modal (theme, text size, sidebar)
 js/backup.js          JSON export and import
@@ -56,7 +56,7 @@ sw.js                 service worker (offline cache)
 manifest.webmanifest  install metadata
 ```
 
-Notes are stored in IndexedDB — nothing ever leaves your machine. Your theme and text size preferences are kept in `localStorage` under the `note.*` keys. Older data from previous `localStorage`-based versions is migrated automatically on load.
+Everything is stored in `localStorage` under the `note.*` keys - nothing ever leaves your machine. Notes from the earlier IndexedDB version are migrated automatically on load.
 
 Backups are plain JSON files you download and re-import yourself; the service worker only caches the app shell so it loads offline.
 

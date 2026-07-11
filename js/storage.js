@@ -1,28 +1,51 @@
-/* IndexedDB persistence.
-   "meta" holds {id, title, updated, pinned} for the sidebar;
-   "bodies" holds each note's text, fetched only when opened. */
+/* localStorage persistence.
+   "note.meta" holds the [{id, title, updated, pinned}] sidebar list;
+   "note.body.<id>" holds each note's text, read only when opened. */
 
-let db;
+const META_KEY = "note.meta";
 
 export function newId() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
 export async function initStorage() {
-    db = await openDatabase();
-    await migrateFromLocalStorage();
+    await migrateFromIndexedDB();
+    migrateOldKeys();
 }
 
-function openDatabase() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open("notepad", 1);
-        request.onupgradeneeded = () => {
-            request.result.createObjectStore("meta", { keyPath: "id" });
-            request.result.createObjectStore("bodies");
-        };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
+function readMetaList() {
+    try {
+        const list = JSON.parse(localStorage.getItem(META_KEY));
+        if (Array.isArray(list)) return list;
+    } catch (e) {}
+    return [];
+}
+
+export function readAllMeta() {
+    return readMetaList();
+}
+
+export function readBody(id) {
+    return localStorage.getItem("note.body." + id) || "";
+}
+
+export function writeNote(meta, text) {
+    localStorage.setItem("note.body." + meta.id, text);
+    writeMeta(meta);
+}
+
+export function writeMeta(meta) {
+    const list = readMetaList();
+    const index = list.findIndex((m) => m.id === meta.id);
+    if (index === -1) list.push(meta);
+    else list[index] = meta;
+    localStorage.setItem(META_KEY, JSON.stringify(list));
+}
+
+export function removeNote(id) {
+    localStorage.removeItem("note.body." + id);
+    const list = readMetaList().filter((m) => m.id !== id);
+    localStorage.setItem(META_KEY, JSON.stringify(list));
 }
 
 function asPromise(request) {
@@ -32,43 +55,31 @@ function asPromise(request) {
     });
 }
 
-function whenDone(tx) {
-    return new Promise((resolve, reject) => {
-        tx.oncomplete = resolve;
-        tx.onerror = () => reject(tx.error);
-    });
+/* One-time copy of notes out of the IndexedDB version. The database
+   is deleted only after every note is safely in localStorage. */
+async function migrateFromIndexedDB() {
+    if (!indexedDB.databases) return;
+    const names = await indexedDB.databases();
+    if (!names.some((d) => d.name === "notepad")) return;
+
+    const db = await asPromise(indexedDB.open("notepad", 1));
+    if (db.objectStoreNames.contains("meta")) {
+        const metas = await asPromise(
+            db.transaction("meta").objectStore("meta").getAll(),
+        );
+        for (const meta of metas) {
+            const text = await asPromise(
+                db.transaction("bodies").objectStore("bodies").get(meta.id),
+            );
+            writeNote(meta, text || "");
+        }
+    }
+    db.close();
+    indexedDB.deleteDatabase("notepad");
 }
 
-export function readAllMeta() {
-    return asPromise(db.transaction("meta").objectStore("meta").getAll());
-}
-
-export function readBody(id) {
-    return asPromise(db.transaction("bodies").objectStore("bodies").get(id));
-}
-
-export function writeNote(meta, text) {
-    const tx = db.transaction(["meta", "bodies"], "readwrite");
-    tx.objectStore("meta").put(meta);
-    tx.objectStore("bodies").put(text, meta.id);
-    return whenDone(tx);
-}
-
-export function writeMeta(meta) {
-    const tx = db.transaction("meta", "readwrite");
-    tx.objectStore("meta").put(meta);
-    return whenDone(tx);
-}
-
-export function removeNote(id) {
-    const tx = db.transaction(["meta", "bodies"], "readwrite");
-    tx.objectStore("meta").delete(id);
-    tx.objectStore("bodies").delete(id);
-    return whenDone(tx);
-}
-
-/* One-time move of notes saved by the old localStorage versions */
-async function migrateFromLocalStorage() {
+/* One-time move of notes saved by the pre-2026 localStorage versions */
+function migrateOldKeys() {
     let oldNotes = null;
     try {
         oldNotes = JSON.parse(localStorage.getItem("note.notes"));
@@ -86,7 +97,7 @@ async function migrateFromLocalStorage() {
             title = (lines.shift() || "").trim();
             text = lines.join("\n").replace(/^\n+/, "");
         }
-        await writeNote(
+        writeNote(
             {
                 id: old.id || newId(),
                 title: title.slice(0, 40),
